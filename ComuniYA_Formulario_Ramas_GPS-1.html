@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ComuniYA - Denuncia</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#172033}
+.container{max-width:650px;margin:auto;min-height:100vh;background:white;padding:24px}
+.logo{font-size:29px;font-weight:800;margin-bottom:4px}.logo span{font-weight:400}
+.sub{color:#737d8d;font-size:14px;margin-bottom:28px}
+.progress{display:flex;gap:5px;margin-bottom:28px}.bar{height:5px;flex:1;background:#e4e7ec;border-radius:8px}.bar.active{background:#172033}
+.step{display:none}.step.active{display:block}
+h1{font-size:25px;margin:0 0 9px}.help{font-size:14px;color:#737d8d;line-height:1.45;margin-bottom:20px}
+.options{display:flex;flex-direction:column;gap:10px}
+.option{padding:16px;border:1px solid #dfe3e9;border-radius:13px;background:white;text-align:left;font-size:15px;font-weight:600;cursor:pointer}
+.option.selected{border:2px solid #172033;background:#f7f8fa}
+textarea{width:100%;min-height:145px;padding:15px;border:1px solid #dfe3e9;border-radius:13px;font:inherit;resize:vertical}
+button.continue{width:100%;margin-top:20px;background:#172033;color:#fff;border:0;border-radius:13px;padding:15px;font-size:15px;font-weight:700}
+.back{background:#edf0f4!important;color:#172033!important}
+.actions{display:flex;gap:10px}.actions .continue{flex:1}
+#map{height:290px;border-radius:13px;margin-top:12px}
+.location{display:flex;gap:9px}.location button{flex:1;padding:14px;border:0;border-radius:12px;font-weight:700;cursor:pointer}.gps{background:#172033;color:#fff}.manual{background:#edf0f4;color:#172033}
+.status{font-size:13px;color:#737d8d;margin-top:10px}
+.photo-buttons{display:flex;gap:10px}.photo-buttons button{flex:1;padding:16px;border:1px solid #dfe3e9;border-radius:13px;background:#fff;font-weight:700;cursor:pointer}
+#preview{display:none;width:100%;max-height:300px;object-fit:cover;border-radius:13px;margin-top:12px}
+.success{text-align:center;padding-top:40px}
+.check{margin:auto auto 15px;width:65px;height:65px;border-radius:50%;background:#edf0f4;display:grid;place-items:center;font-size:30px}
+@media(max-width:500px){.container{padding:20px}.photo-buttons{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="logo">Comuni<span>YA</span></div>
+<div class="sub">Si pasa en tu barrio, se puede comunicar.</div>
+
+<div class="progress"><div id="b1" class="bar active"></div><div id="b2" class="bar"></div><div id="b3" class="bar"></div><div id="b4" class="bar"></div><div id="b5" class="bar"></div></div>
+
+<section id="s1" class="step active">
+<h1>¿Qué problema querés comunicar?</h1>
+<div class="help">Seleccioná una categoría.</div>
+<div class="options" id="categories">
+<button class="option" onclick="select(this,'category','Iluminación')">💡 Iluminación</button>
+<button class="option" onclick="select(this,'category','Calles y veredas')">🛣️ Calles y veredas</button>
+<button class="option" onclick="select(this,'category','Limpieza')">🗑️ Limpieza</button>
+<button class="option" onclick="select(this,'category','Espacios verdes')">🌳 Espacios verdes</button>
+<button class="option" onclick="select(this,'category','Agua')">💧 Agua</button>
+<button class="option" onclick="select(this,'category','Transporte')">🚌 Transporte</button>
+<button class="option" onclick="select(this,'category','Otros')">📌 Otros</button>
+</div>
+<button class="continue" onclick="next(1)">Continuar</button>
+</section>
+
+<section id="s2" class="step">
+<h1>¿Qué está pasando?</h1>
+<div class="help">Seleccioná la opción que más se parezca al problema.</div>
+<div class="options" id="problems"></div>
+<div class="actions">
+<button class="continue back" onclick="show(1)">Atrás</button>
+<button class="continue" onclick="next(2)">Continuar</button>
+</div>
+</section>
+
+<section id="s3" class="step">
+<h1>Hacé una breve descripción</h1>
+<div class="help">Contanos con tus palabras qué está pasando.</div>
+<textarea id="description" placeholder="Escribí una breve descripción del problema..."></textarea>
+<div class="actions">
+<button class="continue back" onclick="show(2)">Atrás</button>
+<button class="continue" onclick="next(3)">Continuar</button>
+</div>
+</section>
+
+<section id="s4" class="step">
+<h1>¿Dónde ocurre?</h1>
+<div class="help">Podés usar la ubicación del celular o marcar el lugar en el mapa.</div>
+<div class="location">
+<button class="gps" onclick="getLocation()">📍 Usar mi ubicación</button>
+<button class="manual" onclick="manualHint()">🗺️ Elegir en mapa</button>
+</div>
+<div id="map"></div>
+<div class="status" id="status">Todavía no seleccionaste una ubicación.</div>
+<div class="actions">
+<button class="continue back" onclick="show(3)">Atrás</button>
+<button class="continue" onclick="next(4)">Continuar</button>
+</div>
+</section>
+
+<section id="s5" class="step">
+<h1>Subí una foto</h1>
+<div class="help">Podés sacar una foto ahora o elegir una de la galería.</div>
+<div class="photo-buttons">
+<button onclick="camera()">📷 Sacar foto</button>
+<button onclick="gallery()">🖼️ Elegir de galería</button>
+</div>
+<input id="photo" type="file" accept="image/*" hidden>
+<img id="preview">
+<div class="actions">
+<button class="continue back" onclick="show(4)">Atrás</button>
+<button class="continue" onclick="publish()">Publicar denuncia</button>
+</div>
+</section>
+
+<section id="done" class="step success">
+<div class="check">✓</div>
+<h1>¡Denuncia lista!</h1>
+<div class="help">El formulario quedó preparado para conectar el envío con el sistema de ComuniYA.</div>
+<button class="continue" onclick="location.reload()">Nueva denuncia</button>
+</section>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let category='',problem='',lat='',lng='',photoFile=null,map,marker;
+const problemOptions={
+'Iluminación':['Lámpara apagada','Calle sin iluminación','Luz dañada','Otro'],
+'Calles y veredas':['Bache o pozo','Calle dañada','Vereda rota','Otro'],
+'Limpieza':['Basura acumulada','Contenedor lleno','Residuos en la calle','Otro'],
+'Espacios verdes':['Plaza en mal estado','Árbol caído o peligroso','Falta de mantenimiento','Otro'],
+'Agua':['Pérdida de agua','Cañería rota','Agua acumulada','Otro'],
+'Transporte':['Parada en mal estado','Problema con el servicio','Falta de transporte','Otro'],
+'Otros':['Otro problema']
+};
+function show(n){
+document.querySelectorAll('.step').forEach(x=>x.classList.remove('active'));
+document.getElementById('s'+n).classList.add('active');
+for(let i=1;i<=5;i++)document.getElementById('b'+i).classList.toggle('active',i<=n);
+if(n===4)setTimeout(()=>{initMap();map.invalidateSize()},100);
+window.scrollTo(0,0);
+}
+function select(el,type,value){
+el.parentElement.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));
+el.classList.add('selected');
+if(type==='category'){
+category=value;
+const box=document.getElementById('problems');box.innerHTML='';
+(problemOptions[value]||['Otro problema']).forEach(x=>{
+const b=document.createElement('button');b.className='option';b.textContent=x;b.onclick=()=>{box.querySelectorAll('.option').forEach(y=>y.classList.remove('selected'));b.classList.add('selected');problem=x};box.appendChild(b);
+});problem='';
+}}
+function next(n){
+if(n===1&&!category)return alert('Seleccioná una categoría.');
+if(n===2&&!problem)return alert('Seleccioná qué problema está pasando.');
+if(n===3&&!description.value.trim())return alert('Escribí una breve descripción.');
+if(n===4&&!lat)return alert('Usá tu ubicación o seleccioná un punto en el mapa.');
+show(n+1);
+}
+function initMap(){
+if(map)return;
+map=L.map('map').setView([-34.6037,-58.3816],14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+map.on('click',e=>setLocation(e.latlng.lat,e.latlng.lng,'Ubicación seleccionada en el mapa.'));
+}
+function setLocation(a,b,msg){
+lat=a;lng=b;
+if(marker)marker.setLatLng([a,b]);else marker=L.marker([a,b]).addTo(map);
+map.setView([a,b],16);status.textContent=msg;
+}
+function requestLocation(){
+  const statusEl=document.getElementById('status');
+
+  if(!window.isSecureContext && location.protocol!=='file:'){
+    statusEl.textContent='Esta página necesita HTTPS para usar el GPS. Abrila desde un sitio seguro.';
+    return;
+  }
+
+  if(!navigator.geolocation){
+    statusEl.textContent='Este dispositivo o navegador no permite geolocalización.';
+    return;
+  }
+
+  statusEl.textContent='📍 Solicitando permiso de ubicación...';
+
+  navigator.geolocation.getCurrentPosition(
+    function(position){
+      const a=position.coords.latitude;
+      const b=position.coords.longitude;
+      setLocation(a,b,'📍 Ubicación del celular detectada correctamente.');
+    },
+    function(error){
+      if(error.code===1){
+        statusEl.textContent='❌ Permiso rechazado. Activá “Ubicación” para este navegador y tocá el botón nuevamente.';
+      }else if(error.code===2){
+        statusEl.textContent='❌ No se pudo detectar el GPS. Comprobá que la ubicación del celular esté activada y probá otra vez.';
+      }else{
+        statusEl.textContent='❌ El GPS tardó demasiado. Probá nuevamente o tocá el mapa para elegir el lugar.';
+      }
+    },
+    {
+      enableHighAccuracy:true,
+      timeout:30000,
+      maximumAge:0
+    }
+  );
+}
+
+function manualHint(){status.textContent='Tocá el mapa en el lugar donde ocurre el problema.'}
+function camera(){photo.setAttribute('capture','environment');photo.value='';photo.click()}
+function gallery(){photo.removeAttribute('capture');photo.value='';photo.click()}
+photo.onchange=()=>{photoFile=photo.files[0];if(!photoFile)return;preview.src=URL.createObjectURL(photoFile);preview.style.display='block'}
+function publish(){if(!photoFile)return alert('Subí una foto antes de publicar.');document.querySelectorAll('.step').forEach(x=>x.classList.remove('active'));done.classList.add('active');document.querySelector('.progress').style.display='none';console.log({category,problem,description:description.value,lat,lng,photo:photoFile})}
+initMap();
+</script>
+</body>
+</html>
